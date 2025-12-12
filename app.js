@@ -1,82 +1,59 @@
-document.addEventListener("DOMContentLoaded", function () {
-    
-    const inputs = document.querySelectorAll("input");
-    const monthlyRevEl = document.getElementById("monthlyRevenue");
-    const yearlyRevEl = document.getElementById("yearlyRevenue");
-    const totalExpensesEl = document.getElementById("totalExpenses");
-    const netProfitEl = document.getElementById("netProfit");
-    const partnerPercentEl = document.getElementById("partnerPercent");
-    const partnerTakeEl = document.getElementById("partnerTake");
-    const yourTakeEl = document.getElementById("yourTake");
+function $(id) {
+    return document.getElementById(id);
+}
 
-    const ctx = document.getElementById("profitChart").getContext("2d");
+const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-    let chart = new Chart(ctx, {
-        type: "bar",
-        data: {
-            labels: ["Monthly Profit"],
-            datasets: [{
-                label: "Profit",
-                data: [0],
-                backgroundColor: "#4973ff"
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            }
-        }
-    });
+const ctx = document.getElementById("profitChart").getContext("2d");
 
-    function calculate() {
-        let occupancy = parseFloat(document.getElementById("occRate").value) || 0;
-        let adrWeek = parseFloat(document.getElementById("adrWeek").value) || 0;
-        let adrWeekend = parseFloat(document.getElementById("adrWeekend").value) || 0;
-
-        let expInputs = document.querySelectorAll(".exp");
-        let totalExpenses = 0;
-
-        expInputs.forEach(e => {
-            totalExpenses += parseFloat(e.value) || 0;
-        });
-
-        // Revenue calculations
-        let nightsMonth = 30 * (occupancy / 100);
-        let weekendNights = nightsMonth * 0.30;  
-        let weekdayNights = nightsMonth * 0.70;  
-
-        let revenue =
-            weekdayNights * adrWeek +
-            weekendNights * adrWeekend;
-
-        let yearlyRevenue = revenue * 12;
-        let netProfit = revenue - totalExpenses;
-
-        // Update HTML UI
-        monthlyRevEl.textContent = "$" + revenue.toFixed(2);
-        yearlyRevEl.textContent = "$" + yearlyRevenue.toFixed(2);
-        totalExpensesEl.textContent = "$" + totalExpenses.toFixed(2);
-        netProfitEl.textContent = "$" + netProfit.toFixed(2);
-
-        // Partnership model
-        let percent = parseFloat(partnerPercentEl.value) || 0;
-        let partnerCut = (netProfit * percent) / 100;
-        let yourCut = netProfit - partnerCut;
-
-        partnerTakeEl.textContent = "$" + partnerCut.toFixed(2);
-        yourTakeEl.textContent = "$" + yourCut.toFixed(2);
-
-        // Update chart
-        chart.data.datasets[0].data = [netProfit];
-        chart.update();
+let chart = new Chart(ctx, {
+    type: "bar",
+    data: {
+        labels: months,
+        datasets: [{
+            label: "Profit",
+            backgroundColor: "#4a90e2",
+            data: Array(12).fill(0)
+        }]
     }
-
-    inputs.forEach(input => {
-        input.addEventListener("input", calculate);
-    });
-
-    calculate();
 });
+
+function calc() {
+
+    let occ = parseFloat($("occRate").value) / 100;
+    let weekdayADR = parseFloat($("adrWeek").value);
+    let weekendADR = parseFloat($("adrWeekend").value);
+
+    let monthlyRevenue = (22 * weekdayADR * occ) + (8 * weekendADR * occ);
+    let dailyProfit = monthlyRevenue / 30;
+
+    let expenses = [
+        parseFloat($("rent").value),
+        parseFloat($("cleaning").value),
+        parseFloat($("utilities").value),
+        parseFloat($("internet").value),
+        parseFloat($("maintenance").value),
+        parseFloat($("supplies").value),
+        parseFloat($("other").value)
+    ].reduce((a,b) => a + b, 0);
+
+    $("totalExpenses").innerHTML = "$" + expenses.toFixed(2);
+
+    let netMonthly = monthlyRevenue - expenses;
+    $("monthlyProfit").innerHTML = "$" + netMonthly.toFixed(2);
+    $("dailyProfit").innerHTML = "$" + (netMonthly/30).toFixed(2);
+    $("yearlyProfit").innerHTML = "$" + (netMonthly*12).toFixed(2);
+
+    let partnerPercent = parseFloat($("partnerSplit").value) / 100;
+    $("partnerShare").innerHTML = "$" + (netMonthly * partnerPercent).toFixed(2);
+    $("yourShare").innerHTML = "$" + (netMonthly * (1 - partnerPercent)).toFixed(2);
+
+    chart.data.datasets[0].data = Array(12).fill(netMonthly);
+    chart.update();
+}
+
+document.querySelectorAll("input").forEach(input => {
+    input.addEventListener("input", calc);
+});
+
+calc();
